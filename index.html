@@ -591,8 +591,10 @@
 
         function generateTotalComparison() {
             // Obter anos disponíveis
-            const anosDisponiveis = [...new Set(dados.map(item => parseInt(item.Ano)))].sort();
-            
+            // const anosDisponiveis = [...new Set(dados.map(item => parseInt(item.Ano)))].sort();
+            const anosDisponiveis = [...new Set(dados.map(item => parseInt(item.Ano)).filter(ano => !isNaN(ano)))].sort();
+    
+
             if (anosDisponiveis.length < 2) {
                 totalComparisonCard.style.display = 'none';
                 return;
@@ -607,9 +609,19 @@
             let diaMax = 0;
             
             dadosAnoAtualFiltrado.forEach(item => {
-                const [dia, mes, ano] = item.Data.split('/');
-                const mesNum = parseInt(mes);
-                const diaNum = parseInt(dia);
+                //const [dia, mes, ano] = item.Data.split('/');
+                //const mesNum = parseInt(mes);
+                //const diaNum = parseInt(dia);
+                if (!item.Data || item.Data.split('/').length < 2) return;
+
+        const dateParts = item.Data.split('/');
+        const diaNum = parseInt(dateParts[0], 10);
+        const mesNum = parseInt(dateParts[1], 10);
+
+        // Validação básica do formato da data
+        if (isNaN(diaNum) || isNaN(mesNum) || mesNum < 1 || mesNum > 12 || diaNum < 1 || diaNum > 31) {
+            return;
+        }
                 
                 if (mesNum > mesMax || (mesNum === mesMax && diaNum > diaMax)) {
                     mesMax = mesNum;
@@ -618,14 +630,42 @@
             });
             
             // Se não encontramos dados, usar o mês atual do sistema
-            if (mesMax === 0) {
-                const dataAtual = new Date();
-                mesMax = dataAtual.getMonth() + 1;
-                diaMax = dataAtual.getDate();
-            }
+            //if (mesMax === 0) {
+            //    const dataAtual = new Date();
+            //    mesMax = dataAtual.getMonth() + 1;
+            //    diaMax = dataAtual.getDate();
+            //}
+            // Se não encontramos dados válidos, usar o mês atual do sistema
+                if (mesMax === 0) {
+                    const dataAtual = new Date();
+                    mesMax = dataAtual.getMonth() + 1;
+                    diaMax = dataAtual.getDate();
+    }
+
+    const filterByDate = (item, anoComparacao) => {
+        const anoItem = parseInt(item.Ano);
+        if (anoItem !== anoComparacao) return false;
+
+        // IGNORAR REGISTROS SEM DATA VÁLIDA
+        if (!item.Data || item.Data.split('/').length < 2) return false;
+        
+        const dateParts = item.Data.split('/');
+        const diaItem = parseInt(dateParts[0], 10);
+        const mesItem = parseInt(dateParts[1], 10);
+        
+        if (isNaN(diaItem) || isNaN(mesItem) || mesItem < 1 || mesItem > 12 || diaItem < 1 || diaItem > 31) {
+            return false;
+        }
+        
+        // Comparar primeiro por mês, depois por dia
+        if (mesItem < mesMax) return true;
+        if (mesItem > mesMax) return false;
+        return diaItem <= diaMax;
+    };
             
             // Calcular totais para todos os bairros do ano atual até o período atual
-            const totalAnoAtual = dados.filter(item => {
+            //const totalAnoAtual = dados.filter(item =>
+            const totalAnoAtual = dados.filter(item => filterByDate(item, anoAtual)).length;{
                 const anoItem = parseInt(item.Ano);
                 const [diaItem, mesItem] = item.Data.split('/').map(Number);
                 
@@ -638,7 +678,9 @@
             }).length;
             
             // Calcular totais para todos os bairros do ano anterior até o mesmo período
-            const totalAnoAnterior = dados.filter(item => {
+            //const totalAnoAnterior = dados.filter(item =>
+            const totalAnoAnterior = dados.filter(item => filterByDate(item, anoAnterior)).length;
+             {
                 const anoItem = parseInt(item.Ano);
                 const [diaItem, mesItem] = item.Data.split('/').map(Number);
                 
