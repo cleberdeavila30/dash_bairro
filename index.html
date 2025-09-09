@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise de Ocorrências da Guarda Municipal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar {
+            background-color: #004d99 !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,.1);
+            margin-bottom: 20px;
+            transition: transform 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card-header {
+            background-color: #0066cc;
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+            font-weight: 600;
+        }
+        .metric-card {
+            text-align: center;
+            padding: 20px;
+        }
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #0066cc;
+        }
+        .metric-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 20px;
+        }
+        .upload-area {
+            border: 2px dashed #0066cc;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            background-color: #f0f7ff;
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover {
+            background-color: #e6f0ff;
+        }
+        .upload-area.dragover {
+            background-color: #d1e7ff;
+            border-color: #004d99;
+        }
+        .btn-upload {
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-upload:hover {
+            background-color: #0052a3;
+            transform: translateY(-2px);
+        }
+        .insight-section {
+            display: none;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+        .ranking-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .ranking-item:last-child {
+            border-bottom: none;
+        }
+        .ranking-position {
+            font-weight: 700;
+            color: #0066cc;
+            margin-right: 15px;
+        }
+        .ranking-name {
+            flex-grow: 1;
+        }
+        .ranking-value {
+            font-weight: 600;
+            color: #495057;
+        }
+        .time-slot {
+            background-color: #e9f5ff;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin: 5px;
+            display: inline-block;
+            font-weight: 600;
+            color: #0066cc;
+        }
+        .footer {
+            background-color: #004d99;
+            color: white;
+            padding: 20px 0;
+            margin-top: 40px;
+        }
+        .alert-custom {
+            border-left: 4px solid #0066cc;
+            background-color: #f0f7ff;
+        }
+        .nav-tabs .nav-link {
+            color: #0066cc;
+            font-weight: 600;
+        }
+        .nav-tabs .nav-link.active {
+            background-color: #0066cc;
+            color: white;
+            border-color: #0066cc;
+        }
+        .year-comparison {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 15px;
+        }
+        .year-badge {
+            font-size: 1.2rem;
+            font-weight: 700;
+            padding: 8px 15px;
+            border-radius: 20px;
+        }
+        .year-badge.current {
+            background-color: #0066cc;
+            color: white;
+        }
+        .year-badge.previous {
+            background-color: #6c757d;
+            color: white;
+        }
+        .metric-change {
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+        .metric-change.positive {
+            color: #28a745;
+        }
+        .metric-change.negative {
+            color: #dc3545;
+        }
+        .total-comparison-card {
+            background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+        .total-comparison-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .comparison-metrics {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+        }
+        .comparison-metric {
+            text-align: center;
+            padding: 15px;
+        }
+        .comparison-metric-value {
+            font-size: 3rem;
+            font-weight: 800;
+        }
+        .comparison-metric-label {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+        .comparison-arrow {
+            font-size: 2rem;
+            align-self: center;
+        }
+        .comparison-change {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-top: 10px;
+        }
+        .comparison-change.positive {
+            color: #28a745;
+        }
+        .comparison-change.negative {
+            color: #dc3545;
+        }
+        .hour-highlight {
+            background-color: #0066cc;
+            color: white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            margin: 2px;
+            font-size: 0.9rem;
+        }
+        .period-info {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-shield-check me-2"></i>
+                Análise de Ocorrências da Guarda Municipal
+            </a>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-upload me-2"></i>Atualizar Dados</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="upload-area" id="uploadArea">
+                            <i class="bi bi-cloud-arrow-up-fill" style="font-size: 3rem; color: #0066cc;"></i>
+                            <h5 class="mt-3">Arraste e solte o arquivo CSV aqui</h5>
+                            <p class="text-muted">ou</p>
+                            <input type="file" id="csvFile" accept=".csv" style="display: none;">
+                            <button class="btn btn-upload" onclick="document.getElementById('csvFile').click()">
+                                <i class="bi bi-folder2-open me-2"></i>Selecionar Arquivo
+                            </button>
+                            <div class="mt-3">
+                                <small class="text-muted">Formato esperado: CSV com colunas BO, Ano, Data, Hora, Natureza, Ocorrencia, Regional, Bairro</small>
+                            </div>
+                        </div>
+                        <div class="loading" id="loadingIndicator">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Carregando...</span>
+                            </div>
+                            <p class="mt-2">Processando dados...</p>
+                        </div>
+                        <div id="uploadSuccess" class="alert alert-success alert-custom mt-3" style="display: none;">
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            Dados atualizados com sucesso!
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparativo Total Anual -->
+        <div class="total-comparison-card" id="totalComparisonCard" style="display: none;">
+            <div class="total-comparison-title">
+                <i class="bi bi-graph-up-arrow me-2"></i>Comparativo Total de Ocorrências
+            </div>
+            <div class="comparison-metrics">
+                <div class="comparison-metric">
+                    <div class="comparison-metric-value" id="totalPreviousYear">0</div>
+                    <div class="comparison-metric-label" id="totalPreviousYearLabel">Ano Anterior</div>
+                    <div class="period-info" id="periodPreviousYear"></div>
+                </div>
+                <div class="comparison-arrow">
+                    <i class="bi bi-arrow-right"></i>
+                </div>
+                <div class="comparison-metric">
+                    <div class="comparison-metric-value" id="totalCurrentYear">0</div>
+                    <div class="comparison-metric-label" id="totalCurrentYearLabel">Ano Atual</div>
+                    <div class="period-info" id="periodCurrentYear"></div>
+                    <div class="comparison-change" id="totalChange"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-lg-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>Filtrar por Bairro</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="bairroSelect" class="form-label">Selecione um bairro:</label>
+                                <select class="form-select" id="bairroSelect">
+                                    <option value="">-- Selecione um bairro --</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 d-flex align-items-end">
+                                <button class="btn btn-primary" id="generateInsights" disabled>
+                                    <i class="bi bi-bar-chart-line me-2"></i>Gerar Insights
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="insight-section" id="insightSection">
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <h4 class="mb-3">Insights para: <span id="selectedBairro" class="text-primary"></span></h4>
+                </div>
+                
+                <div class="col-md-3">
+                    <div class="card metric-card">
+                        <div class="metric-value" id="totalAnual">0</div>
+                        <div class="metric-label">Total Anual</div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3">
+                    <div class="card metric-card">
+                        <div class="metric-value" id="totalSemestre1">0</div>
+                        <div class="metric-label">1º Semestre</div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3">
+                    <div class="card metric-card">
+                        <div class="metric-value" id="totalSemestre2">0</div>
+                        <div class="metric-label">2º Semestre</div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3">
+                    <div class="card metric-card">
+                        <div class="metric-value" id="variacaoAnual">0%</div>
+                        <div class="metric-label">Variação Anual</div>
+                        <div class="metric-change" id="variacaoAnualDescricao"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="mensal-tab" data-bs-toggle="tab" data-bs-target="#mensal" type="button" role="tab">Mensal Ano Atual</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="comparativo-tab" data-bs-toggle="tab" data-bs-target="#comparativo" type="button" role="tab">Comparativo Anual</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="horas-bairro-tab" data-bs-toggle="tab" data-bs-target="#horas-bairro" type="button" role="tab">Horas Ano Atual (Bairro)</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="horas-tab" data-bs-toggle="tab" data-bs-target="#horas" type="button" role="tab">Comparativo Horas</button>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="card-body">
+                            <div class="tab-content">
+                                <div class="tab-pane fade show active" id="mensal" role="tabpanel">
+                                    <div class="chart-container">
+                                        <canvas id="mensalChart"></canvas>
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="comparativo" role="tabpanel">
+                                    <div class="year-comparison">
+                                        <span class="year-badge current" id="currentYearBadge">2025</span>
+                                        <span class="year-badge previous" id="previousYearBadge">2024</span>
+                                    </div>
+                                    <div class="chart-container">
+                                        <canvas id="comparativoChart"></canvas>
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="horas-bairro" role="tabpanel">
+                                    <div class="chart-container">
+                                        <canvas id="horasBairroChart"></canvas>
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="horas" role="tabpanel">
+                                    <div class="chart-container">
+                                        <canvas id="horasChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-list-ol me-2"></i>Ranking de Ocorrências</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="rankingList"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Horários Mais Críticos</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="criticalHours"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Principais Violências</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="violenceTypes"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Evolução Mensal</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="evolucaoMensal"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12 text-center">
+                    <p>&copy; 2025 Análise de Ocorrências da Guarda Municipal. Todos os direitos reservados.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Variáveis globais
+        let dados = [];
+        let bairros = [];
+        let mensalChart = null;
+        let comparativoChart = null;
+        let horasChart = null;
+        let horasBairroChart = null;
+
+        // Elementos do DOM
+        const uploadArea = document.getElementById('uploadArea');
+        const csvFile = document.getElementById('csvFile');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const uploadSuccess = document.getElementById('uploadSuccess');
+        const bairroSelect = document.getElementById('bairroSelect');
+        const generateBtn = document.getElementById('generateInsights');
+        const insightSection = document.getElementById('insightSection');
+        const selectedBairroSpan = document.getElementById('selectedBairro');
+        const totalComparisonCard = document.getElementById('totalComparisonCard');
+
+        // Event Listeners
+        uploadArea.addEventListener('dragover', handleDragOver);
+        uploadArea.addEventListener('dragleave', handleDragLeave);
+        uploadArea.addEventListener('drop', handleDrop);
+        csvFile.addEventListener('change', handleFileSelect);
+        bairroSelect.addEventListener('change', handleBairroSelect);
+        generateBtn.addEventListener('click', generateInsights);
+
+        // Funções para upload de arquivo
+        function handleDragOver(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            if (e.dataTransfer.files.length) {
+                csvFile.files = e.dataTransfer.files;
+                handleFileSelect({ target: { files: e.dataTransfer.files } });
+            }
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file && file.type === 'text/csv') {
+                processCSV(file);
+            } else {
+                alert('Por favor, selecione um arquivo CSV válido.');
+            }
+        }
+
+        function processCSV(file) {
+            loadingIndicator.style.display = 'block';
+            uploadSuccess.style.display = 'none';
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                parseCSV(text);
+            };
+            reader.readAsText(file);
+        }
+
+        function parseCSV(text) {
+            const lines = text.split('\n');
+            const headers = lines[0].split(';');
+            
+            dados = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim() === '') continue;
+                
+                const values = lines[i].split(';');
+                const obj = {};
+                
+                headers.forEach((header, index) => {
+                    obj[header.trim()] = values[index] ? values[index].trim() : '';
+                });
+                
+                dados.push(obj);
+            }
+            
+            // Extrair bairros únicos
+            bairros = [...new Set(dados.map(item => item.Bairro))];
+            bairros.sort();
+            
+            // Popular o select de bairros
+            bairroSelect.innerHTML = '<option value="">-- Selecione um bairro --</option>';
+            bairros.forEach(bairro => {
+                const option = document.createElement('option');
+                option.value = bairro;
+                option.textContent = bairro;
+                bairroSelect.appendChild(option);
+            });
+            
+            // Gerar comparativo total anual
+            generateTotalComparison();
+            
+            loadingIndicator.style.display = 'none';
+            uploadSuccess.style.display = 'block';
+            
+            // Resetar a seção de insights
+            insightSection.style.display = 'none';
+            generateBtn.disabled = true;
+        }
+
+        function generateTotalComparison() {
+            // Obter anos disponíveis
+            const anosDisponiveis = [...new Set(dados.map(item => parseInt(item.Ano)))].sort();
+            
+            if (anosDisponiveis.length < 2) {
+                totalComparisonCard.style.display = 'none';
+                return;
+            }
+            
+            const anoAtual = anosDisponiveis[anosDisponiveis.length - 1];
+            const anoAnterior = anosDisponiveis[anosDisponiveis.length - 2];
+            
+            // Determinar o período atual (mês e dia mais recentes nos dados)
+            const dadosAnoAtualFiltrado = dados.filter(item => parseInt(item.Ano) === anoAtual);
+            let mesMax = 0;
+            let diaMax = 0;
+            
+            dadosAnoAtualFiltrado.forEach(item => {
+                const [dia, mes, ano] = item.Data.split('/');
+                const mesNum = parseInt(mes);
+                const diaNum = parseInt(dia);
+                
+                if (mesNum > mesMax || (mesNum === mesMax && diaNum > diaMax)) {
+                    mesMax = mesNum;
+                    diaMax = diaNum;
+                }
+            });
+            
+            // Se não encontramos dados, usar o mês atual do sistema
+            if (mesMax === 0) {
+                const dataAtual = new Date();
+                mesMax = dataAtual.getMonth() + 1;
+                diaMax = dataAtual.getDate();
+            }
+            
+            // Calcular totais para todos os bairros do ano atual até o período atual
+            const totalAnoAtual = dados.filter(item => {
+                const anoItem = parseInt(item.Ano);
+                const [diaItem, mesItem] = item.Data.split('/').map(Number);
+                
+                if (anoItem !== anoAtual) return false;
+                
+                // Comparar primeiro por mês, depois por dia
+                if (mesItem < mesMax) return true;
+                if (mesItem > mesMax) return false;
+                return diaItem <= diaMax;
+            }).length;
+            
+            // Calcular totais para todos os bairros do ano anterior até o mesmo período
+            const totalAnoAnterior = dados.filter(item => {
+                const anoItem = parseInt(item.Ano);
+                const [diaItem, mesItem] = item.Data.split('/').map(Number);
+                
+                if (anoItem !== anoAnterior) return false;
+                
+                // Comparar primeiro por mês, depois por dia
+                if (mesItem < mesMax) return true;
+                if (mesItem > mesMax) return false;
+                return diaItem <= diaMax;
+            }).length;
+            
+            // Calcular variação
+            let variacao = 0;
+            let variacaoHtml = '';
+            
+            if (totalAnoAnterior > 0) {
+                variacao = ((totalAnoAtual - totalAnoAnterior) / totalAnoAnterior * 100).toFixed(1);
+                
+                if (variacao > 0) {
+                    variacaoHtml = `<span class="comparison-change positive">+${variacao}%</span>`;
+                } else if (variacao < 0) {
+                    variacaoHtml = `<span class="comparison-change negative">${variacao}%</span>`;
+                } else {
+                    variacaoHtml = `<span class="comparison-change">0%</span>`;
+                }
+            } else {
+                variacaoHtml = `<span class="comparison-change">Sem dados anteriores</span>`;
+            }
+            
+            // Formatar o período para exibição
+            const periodoStr = `até ${diaMax.toString().padStart(2, '0')}/${mesMax.toString().padStart(2, '0')}`;
+            
+            // Atualizar o card
+            document.getElementById('totalPreviousYear').textContent = totalAnoAnterior;
+            document.getElementById('totalPreviousYearLabel').textContent = anoAnterior;
+            document.getElementById('periodPreviousYear').textContent = periodoStr;
+            
+            document.getElementById('totalCurrentYear').textContent = totalAnoAtual;
+            document.getElementById('totalCurrentYearLabel').textContent = anoAtual;
+            document.getElementById('periodCurrentYear').textContent = periodoStr;
+            document.getElementById('totalChange').innerHTML = variacaoHtml;
+            
+            totalComparisonCard.style.display = 'block';
+        }
+
+        function handleBairroSelect() {
+            generateBtn.disabled = !bairroSelect.value;
+        }
+
+        function generateInsights() {
+            const bairro = bairroSelect.value;
+            if (!bairro) return;
+            
+            selectedBairroSpan.textContent = bairro;
+            
+            // Filtrar dados por bairro
+            const dadosBairro = dados.filter(item => item.Bairro === bairro);
+            
+            // Calcular métricas
+            const totalAnual = dadosBairro.length;
+            
+            // Calcular semestres
+            const dadosSemestre1 = dadosBairro.filter(item => {
+                const mes = parseInt(item.Data.split('/')[1]);
+                return mes >= 1 && mes <= 6;
+            });
+            
+            const dadosSemestre2 = dadosBairro.filter(item => {
+                const mes = parseInt(item.Data.split('/')[1]);
+                return mes >= 7 && mes <= 12;
+            });
+            
+            // Atualizar métricas
+            document.getElementById('totalAnual').textContent = totalAnual;
+            document.getElementById('totalSemestre1').textContent = dadosSemestre1.length;
+            document.getElementById('totalSemestre2').textContent = dadosSemestre2.length;
+            
+            // Calcular variação anual
+            const anosDisponiveis = [...new Set(dadosBairro.map(item => parseInt(item.Ano)))].sort();
+            let variacaoAnual = 0;
+            let variacaoAnualDescricao = '';
+            
+            if (anosDisponiveis.length >= 2) {
+                const anoAtual = anosDisponiveis[anosDisponiveis.length - 1];
+                const anoAnterior = anosDisponiveis[anosDisponiveis.length - 2];
+                
+                const dadosAnoAtual = dadosBairro.filter(item => parseInt(item.Ano) === anoAtual);
+                const dadosAnoAnterior = dadosBairro.filter(item => parseInt(item.Ano) === anoAnterior);
+                
+                if (dadosAnoAnterior.length > 0) {
+                    variacaoAnual = ((dadosAnoAtual.length - dadosAnoAnterior.length) / dadosAnoAnterior.length * 100).toFixed(1);
+                    
+                    if (variacaoAnual > 0) {
+                        variacaoAnualDescricao = `<span class="metric-change positive">+${variacaoAnual}% em relação a ${anoAnterior}</span>`;
+                    } else if (variacaoAnual < 0) {
+                        variacaoAnualDescricao = `<span class="metric-change negative">${variacaoAnual}% em relação a ${anoAnterior}</span>`;
+                    } else {
+                        variacaoAnualDescricao = `<span class="metric-change">Estável em relação a ${anoAnterior}</span>`;
+                    }
+                }
+                
+                // Atualizar badges dos anos
+                document.getElementById('currentYearBadge').textContent = anoAtual;
+                document.getElementById('previousYearBadge').textContent = anoAnterior;
+            } else {
+                variacaoAnualDescricao = '<span class="metric-change">Dados insuficientes para comparação</span>';
+            }
+            
+            document.getElementById('variacaoAnual').textContent = variacaoAnual + '%';
+            document.getElementById('variacaoAnualDescricao').innerHTML = variacaoAnualDescricao;
+            
+            // Gerar gráficos
+            generateMensalChart(dadosBairro);
+            generateComparativoChart(dadosBairro, anosDisponiveis);
+            generateHorasBairroChart(dadosBairro);
+            generateHorasChart(anosDisponiveis);
+            
+            // Gerar ranking de ocorrências
+            generateRanking(dadosBairro);
+            
+            // Gerar horários críticos
+            generateCriticalHours(dadosBairro);
+            
+            // Gerar tipos de violência
+            generateViolenceTypes(dadosBairro);
+            
+            // Gerar evolução mensal
+            generateEvolucaoMensal(dadosBairro);
+            
+            // Exibir seção de insights
+            insightSection.style.display = 'block';
+        }
+
+        function generateMensalChart(dadosBairro) {
+            // Inicializar array de meses
+            const meses = Array(12).fill(0);
+            
+            // Contar ocorrências por mês (apenas ano atual)
+            const anoAtual = Math.max(...dadosBairro.map(item => parseInt(item.Ano)));
+            const dadosAnoAtual = dadosBairro.filter(item => parseInt(item.Ano) === anoAtual);
+            
+            dadosAnoAtual.forEach(item => {
+                const mes = parseInt(item.Data.split('/')[1]) - 1; // Índice de 0 a 11
+                if (mes >= 0 && mes < 12) {
+                    meses[mes]++;
+                }
+            });
+            
+            // Nomes dos meses
+            const nomesMeses = [
+                'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+            ];
+            
+            // Destruir gráfico anterior se existir
+            if (mensalChart) {
+                mensalChart.destroy();
+            }
+            
+            // Criar novo gráfico
+            const ctx = document.getElementById('mensalChart').getContext('2d');
+            mensalChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: nomesMeses,
+                    datasets: [{
+                        label: 'Ocorrências',
+                        data: meses,
+                        backgroundColor: 'rgba(0, 102, 204, 0.7)',
+                        borderColor: 'rgba(0, 102, 204, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        function generateComparativoChart(dadosBairro, anosDisponiveis) {
+            // Destruir gráfico anterior se existir
+            if (comparativoChart) {
+                comparativoChart.destroy();
+            }
+            
+            const ctx = document.getElementById('comparativoChart').getContext('2d');
+            
+            // Se não houver dados suficientes para comparação
+            if (anosDisponiveis.length < 2) {
+                comparativoChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Dados insuficientes'],
+                        datasets: [{
+                            label: 'Ocorrências',
+                            data: [0],
+                            backgroundColor: 'rgba(108, 117, 125, 0.7)',
+                            borderColor: 'rgba(108, 117, 125, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+                return;
+            }
+            
+            const anoAtual = anosDisponiveis[anosDisponiveis.length - 1];
+            const anoAnterior = anosDisponiveis[anosDisponiveis.length - 2];
+            
+            // Inicializar arrays de meses
+            const mesesAtual = Array(12).fill(0);
+            const mesesAnterior = Array(12).fill(0);
+            
+            // Contar ocorrências por mês para cada ano
+            const dadosAnoAtual = dadosBairro.filter(item => parseInt(item.Ano) === anoAtual);
+            const dadosAnoAnterior = dadosBairro.filter(item => parseInt(item.Ano) === anoAnterior);
+            
+            dadosAnoAtual.forEach(item => {
+                const mes = parseInt(item.Data.split('/')[1]) - 1;
+                if (mes >= 0 && mes < 12) {
+                    mesesAtual[mes]++;
+                }
+            });
+            
+            dadosAnoAnterior.forEach(item => {
+                const mes = parseInt(item.Data.split('/')[1]) - 1;
+                if (mes >= 0 && mes < 12) {
+                    mesesAnterior[mes]++;
+                }
+            });
+            
+            // Nomes dos meses
+            const nomesMeses = [
+                'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+                'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
+            ];
+            
+            // Criar gráfico comparativo
+            comparativoChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: nomesMeses,
+                    datasets: [
+                        {
+                            label: anoAtual.toString(),
+                            data: mesesAtual,
+                            backgroundColor: 'rgba(0, 102, 204, 0.7)',
+                            borderColor: 'rgba(0, 102, 204, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: anoAnterior.toString(),
+                            data: mesesAnterior,
+                            backgroundColor: 'rgba(108, 117, 125, 0.7)',
+                            borderColor: 'rgba(108, 117, 125, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function generateHorasBairroChart(dadosBairro) {
+            // Destruir gráfico anterior se existir
+            if (horasBairroChart) {
+                horasBairroChart.destroy();
+            }
+            
+            const ctx = document.getElementById('horasBairroChart').getContext('2d');
+            
+            // Obter ano atual
+            const anoAtual = Math.max(...dadosBairro.map(item => parseInt(item.Ano)));
+            const dadosAnoAtual = dadosBairro.filter(item => parseInt(item.Ano) === anoAtual);
+            
+            // Inicializar array de horas
+            const horas = Array(24).fill(0);
+            
+            // Contar ocorrências por hora
+            dadosAnoAtual.forEach(item => {
+                const hora = parseInt(item.Hora.split(':')[0]);
+                if (hora >= 0 && hora < 24) {
+                    horas[hora]++;
+                }
+            });
+            
+            // Labels das horas
+            const labelsHoras = Array.from({length: 24}, (_, i) => `${i.toString().padStart(2, '0')}:00`);
+            
+            // Encontrar o valor máximo para destacar
+            const maxOcorrencias = Math.max(...horas);
+            
+            // Criar array de cores (destacar os horários com mais ocorrências)
+            const backgroundColors = horas.map(valor => 
+                valor === maxOcorrencias ? 'rgba(220, 53, 69, 0.8)' : 'rgba(0, 102, 204, 0.7)'
+            );
+            
+            const borderColors = horas.map(valor => 
+                valor === maxOcorrencias ? 'rgba(220, 53, 69, 1)' : 'rgba(0, 102, 204, 1)'
+            );
+            
+            // Criar gráfico de horas
+            horasBairroChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labelsHoras,
+                    datasets: [{
+                        label: 'Ocorrências',
+                        data: horas,
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    if (context.parsed.y === maxOcorrencias) {
+                                        return 'Horário crítico';
+                                    }
+                                    return '';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function generateHorasChart(anosDisponiveis) {
+            // Destruir gráfico anterior se existir
+            if (horasChart) {
+                horasChart.destroy();
+            }
+            
+            const ctx = document.getElementById('horasChart').getContext('2d');
+            
+            // Se não houver dados suficientes para comparação
+            if (anosDisponiveis.length < 2) {
+                horasChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Dados insuficientes'],
+                        datasets: [{
+                            label: 'Ocorrências',
+                            data: [0],
+                            backgroundColor: 'rgba(108, 117, 125, 0.7)',
+                            borderColor: 'rgba(108, 117, 125, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+                return;
+            }
+            
+            const anoAtual = anosDisponiveis[anosDisponiveis.length - 1];
+            const anoAnterior = anosDisponiveis[anosDisponiveis.length - 2];
+            
+            // Inicializar arrays de horas
+            const horasAtual = Array(24).fill(0);
+            const horasAnterior = Array(24).fill(0);
+            
+            // Contar ocorrências por hora para cada ano (todos os bairros)
+            const dadosAnoAtual = dados.filter(item => parseInt(item.Ano) === anoAtual);
+            const dadosAnoAnterior = dados.filter(item => parseInt(item.Ano) === anoAnterior);
+            
+            dadosAnoAtual.forEach(item => {
+                const hora = parseInt(item.Hora.split(':')[0]);
+                if (hora >= 0 && hora < 24) {
+                    horasAtual[hora]++;
+                }
+            });
+            
+            dadosAnoAnterior.forEach(item => {
+                const hora = parseInt(item.Hora.split(':')[0]);
+                if (hora >= 0 && hora < 24) {
+                    horasAnterior[hora]++;
+                }
+            });
+            
+            // Labels das horas
+            const labelsHoras = Array.from({length: 24}, (_, i) => `${i.toString().padStart(2, '0')}:00`);
+            
+            // Criar gráfico comparativo de horas
+            horasChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labelsHoras,
+                    datasets: [
+                        {
+                            label: anoAtual.toString(),
+                            data: horasAtual,
+                            backgroundColor: 'rgba(0, 102, 204, 0.2)',
+                            borderColor: 'rgba(0, 102, 204, 1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: anoAnterior.toString(),
+                            data: horasAnterior,
+                            backgroundColor: 'rgba(108, 117, 125, 0.2)',
+                            borderColor: 'rgba(108, 117, 125, 1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    }
+                }
+            });
+        }
+
+        function generateRanking(dadosBairro) {
+            // Contar ocorrências por tipo
+            const ocorrenciasCount = {};
+            
+            dadosBairro.forEach(item => {
+                const ocorrencia = item.Ocorrencia;
+                ocorrenciasCount[ocorrencia] = (ocorrenciasCount[ocorrencia] || 0) + 1;
+            });
+            
+            // Ordenar por quantidade
+            const ranking = Object.entries(ocorrenciasCount)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10); // Top 10
+            
+            // Gerar HTML
+            let html = '';
+            ranking.forEach((item, index) => {
+                html += `
+                    <div class="ranking-item">
+                        <div class="ranking-position">#${index + 1}</div>
+                        <div class="ranking-name">${item[0]}</div>
+                        <div class="ranking-value">${item[1]}</div>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('rankingList').innerHTML = html;
+        }
+
+        function generateCriticalHours(dadosBairro) {
+            // Contar ocorrências por hora
+            const horasCount = Array(24).fill(0);
+            
+            dadosBairro.forEach(item => {
+                const hora = parseInt(item.Hora.split(':')[0]);
+                if (hora >= 0 && hora < 24) {
+                    horasCount[hora]++;
+                }
+            });
+            
+            // Encontrar as horas com mais ocorrências
+            const maxOcorrencias = Math.max(...horasCount);
+            const criticalHours = [];
+            
+            horasCount.forEach((count, hour) => {
+                if (count === maxOcorrencias) {
+                    criticalHours.push(hour);
+                }
+            });
+            
+            // Gerar HTML
+            let html = '';
+            if (criticalHours.length > 0) {
+                html += '<p class="mb-2">Horários com maior número de ocorrências:</p>';
+                criticalHours.forEach(hour => {
+                    const hourStr = hour.toString().padStart(2, '0');
+                    html += `<span class="hour-highlight">${hourStr}</span>`;
+                });
+                html += `<p class="mt-2"><strong>${maxOcorrencias}</strong> ocorrências nesses horários</p>`;
+            } else {
+                html = '<p>Não há dados suficientes para determinar horários críticos.</p>';
+            }
+            
+            document.getElementById('criticalHours').innerHTML = html;
+        }
+
+        function generateViolenceTypes(dadosBairro) {
+            // Filtrar ocorrências relacionadas a violência
+            const violenceKeywords = [
+                'AGRESSAO', 'VIOLENCIA', 'ROUBO', 'FURTO', 'ARROMBAMENTO', 
+                'DANO', 'INVASAO', 'DESCUMPRIMENTO', 'TOXICO'
+            ];
+            
+            const violenceTypes = {};
+            
+            dadosBairro.forEach(item => {
+                const natureza = item.Natureza.toUpperCase();
+                const ocorrencia = item.Ocorrencia.toUpperCase();
+                
+                // Verificar se a natureza ou ocorrência contém palavras-chave de violência
+                const isViolence = violenceKeywords.some(keyword => 
+                    natureza.includes(keyword) || ocorrencia.includes(keyword)
+                );
+                
+                if (isViolence) {
+                    const tipo = item.Ocorrencia;
+                    violenceTypes[tipo] = (violenceTypes[tipo] || 0) + 1;
+                }
+            });
+            
+            // Ordenar por quantidade
+            const sortedViolence = Object.entries(violenceTypes)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5); // Top 5
+            
+            // Gerar HTML
+            let html = '';
+            if (sortedViolence.length > 0) {
+                sortedViolence.forEach(item => {
+                    html += `
+                        <div class="alert alert-warning alert-custom d-flex justify-content-between align-items-center">
+                            <div>${item[0]}</div>
+                            <span class="badge bg-warning text-dark">${item[1]}</span>
+                        </div>
+                    `;
+                });
+            } else {
+                html = '<p>Não foram identificadas ocorrências de violência neste bairro.</p>';
+            }
+            
+            document.getElementById('violenceTypes').innerHTML = html;
+        }
+
+        function generateEvolucaoMensal(dadosBairro) {
+            // Agrupar dados por ano e mês
+            const evolucaoData = {};
+            
+            dadosBairro.forEach(item => {
+                const ano = parseInt(item.Ano);
+                const mes = parseInt(item.Data.split('/')[1]);
+                const chave = `${ano}-${mes.toString().padStart(2, '0')}`;
+                
+                if (!evolucaoData[chave]) {
+                    evolucaoData[chave] = 0;
+                }
+                evolucaoData[chave]++;
+            });
+            
+            // Ordenar cronologicamente
+            const chavesOrdenadas = Object.keys(evolucaoData).sort();
+            
+            // Gerar HTML
+            let html = '<div class="table-responsive"><table class="table table-sm">';
+            html += '<thead><tr><th>Mês/Ano</th><th>Ocorrências</th><th>Variação</th></tr></thead><tbody>';
+            
+            let anterior = null;
+            chavesOrdenadas.forEach(chave => {
+                const [ano, mes] = chave.split('-');
+                const valor = evolucaoData[chave];
+                const mesNome = new Date(ano, mes - 1).toLocaleString('pt-BR', { month: 'short' });
+                
+                let variacaoHtml = '-';
+                if (anterior !== null) {
+                    const variacao = valor - anterior;
+                    if (variacao > 0) {
+                        variacaoHtml = `<span class="text-success">+${variacao}</span>`;
+                    } else if (variacao < 0) {
+                        variacaoHtml = `<span class="text-danger">${variacao}</span>`;
+                    } else {
+                        variacaoHtml = '<span class="text-muted">0</span>';
+                    }
+                }
+                
+                html += `<tr><td>${mesNome}/${ano}</td><td>${valor}</td><td>${variacaoHtml}</td></tr>`;
+                anterior = valor;
+            });
+            
+            html += '</tbody></table></div>';
+            
+            document.getElementById('evolucaoMensal').innerHTML = html;
+        }
+    </script>
+</body>
+</html>
