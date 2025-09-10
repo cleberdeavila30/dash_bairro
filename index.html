@@ -7,6 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         body {
             background-color: #f8f9fa;
@@ -255,14 +256,14 @@
                     <div class="card-body">
                         <div class="upload-area" id="uploadArea">
                             <i class="bi bi-cloud-arrow-up-fill" style="font-size: 3rem; color: #0066cc;"></i>
-                            <h5 class="mt-3">Arraste e solte o arquivo CSV aqui</h5>
+                            <h5 class="mt-3">Arraste e solte o arquivo CSV ou Excel aqui</h5>
                             <p class="text-muted">ou</p>
-                            <input type="file" id="csvFile" accept=".csv" style="display: none;">
-                            <button class="btn btn-upload" onclick="document.getElementById('csvFile').click()">
+                            <input type="file" id="dataFile" accept=".csv, .xlsx, .xls" style="display: none;">
+                            <button class="btn btn-upload" onclick="document.getElementById('dataFile').click()">
                                 <i class="bi bi-folder2-open me-2"></i>Selecionar Arquivo
                             </button>
                             <div class="mt-3">
-                                <small class="text-muted">Formato esperado: CSV com colunas BO, Ano, Data, Hora, Natureza, Ocorrencia, Regional, Bairro</small>
+                                <small class="text-muted">Formato esperado: CSV ou Excel com colunas BO, Ano, Data, Hora, Natureza, Ocorrencia, Regional, Bairro</small>
                             </div>
                         </div>
                         <div class="loading" id="loadingIndicator">
@@ -487,7 +488,7 @@
 
         // Elementos do DOM
         const uploadArea = document.getElementById('uploadArea');
-        const csvFile = document.getElementById('csvFile');
+        const dataFile = document.getElementById('dataFile');
         const loadingIndicator = document.getElementById('loadingIndicator');
         const uploadSuccess = document.getElementById('uploadSuccess');
         const bairroSelect = document.getElementById('bairroSelect');
@@ -500,7 +501,7 @@
         uploadArea.addEventListener('dragover', handleDragOver);
         uploadArea.addEventListener('dragleave', handleDragLeave);
         uploadArea.addEventListener('drop', handleDrop);
-        csvFile.addEventListener('change', handleFileSelect);
+        dataFile.addEventListener('change', handleFileSelect);
         bairroSelect.addEventListener('change', handleBairroSelect);
         generateBtn.addEventListener('click', generateInsights);
 
@@ -520,37 +521,68 @@
             uploadArea.classList.remove('dragover');
             
             if (e.dataTransfer.files.length) {
-                csvFile.files = e.dataTransfer.files;
+                dataFile.files = e.dataTransfer.files;
                 handleFileSelect({ target: { files: e.dataTransfer.files } });
             }
         }
 
         function handleFileSelect(e) {
             const file = e.target.files[0];
-            if (file && file.type === 'text/csv') {
-                processCSV(file);
+            if (!file) return;
+
+            const validCsvType = 'text/csv';
+            const validExcelTypes = [
+                'application/vnd.ms-excel',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            ];
+
+            if (file.type === validCsvType || file.name.endsWith('.csv')) {
+                processFile(file, 'csv');
+            } else if (validExcelTypes.includes(file.type) || file.name.endsWith('.xls') || file.name.endsWith('.xlsx')) {
+                processFile(file, 'excel');
             } else {
-                alert('Por favor, selecione um arquivo CSV válido.');
+                alert('Por favor, selecione um arquivo CSV ou Excel válido.');
             }
         }
 
-        function processCSV(file) {
+        function processFile(file, type) {
             loadingIndicator.style.display = 'block';
             uploadSuccess.style.display = 'none';
             
             const reader = new FileReader();
+            
             reader.onload = function(e) {
-                const text = e.target.result;
-                parseCSV(text);
+                try {
+                    if (type === 'excel') {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, {type: 'array'});
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        dados = XLSX.utils.sheet_to_json(worksheet);
+                    } else { // csv
+                        const text = e.target.result;
+                        parseCSV(text);
+                    }
+                    postProcessData();
+                } catch (error) {
+                    console.error("Erro ao processar o arquivo:", error);
+                    alert("Ocorreu um erro ao processar o arquivo. Verifique o formato e o conteúdo.");
+                    loadingIndicator.style.display = 'none';
+                }
             };
-            reader.readAsText(file);
+
+            if (type === 'excel') {
+                reader.readAsArrayBuffer(file);
+            } else {
+                reader.readAsText(file);
+            }
         }
 
         function parseCSV(text) {
             const lines = text.split('\n');
-            const headers = lines[0].split(';');
+            const headers = lines[0].split(';').map(h => h.trim());
             
-            dados = [];
+            const tempDados = [];
             
             for (let i = 1; i < lines.length; i++) {
                 if (lines[i].trim() === '') continue;
@@ -559,17 +591,18 @@
                 const obj = {};
                 
                 headers.forEach((header, index) => {
-                    obj[header.trim()] = values[index] ? values[index].trim() : '';
+                    obj[header] = values[index] ? values[index].trim() : '';
                 });
                 
-                dados.push(obj);
+                tempDados.push(obj);
             }
-            
-            // Extrair bairros únicos
-            bairros = [...new Set(dados.map(item => item.Bairro))];
+            dados = tempDados;
+        }
+
+        function postProcessData() {
+            bairros = [...new Set(dados.map(item => item.Bairro).filter(b => b))];
             bairros.sort();
             
-            // Popular o select de bairros
             bairroSelect.innerHTML = '<option value="">-- Selecione um bairro --</option>';
             bairros.forEach(bairro => {
                 const option = document.createElement('option');
@@ -578,23 +611,19 @@
                 bairroSelect.appendChild(option);
             });
             
-            // Gerar comparativo total anual
             generateTotalComparison();
             
             loadingIndicator.style.display = 'none';
             uploadSuccess.style.display = 'block';
             
-            // Resetar a seção de insights
             insightSection.style.display = 'none';
             generateBtn.disabled = true;
         }
 
         function generateTotalComparison() {
-            // Obter anos disponíveis
-            // const anosDisponiveis = [...new Set(dados.map(item => parseInt(item.Ano)))].sort();
+            // Obter anos disponíveis, ignorando anos inválidos
             const anosDisponiveis = [...new Set(dados.map(item => parseInt(item.Ano)).filter(ano => !isNaN(ano)))].sort();
-    
-
+            
             if (anosDisponiveis.length < 2) {
                 totalComparisonCard.style.display = 'none';
                 return;
@@ -609,19 +638,17 @@
             let diaMax = 0;
             
             dadosAnoAtualFiltrado.forEach(item => {
-                //const [dia, mes, ano] = item.Data.split('/');
-                //const mesNum = parseInt(mes);
-                //const diaNum = parseInt(dia);
-                if (!item.Data || item.Data.split('/').length < 2) return;
+                // Adiciona validação para ignorar datas inválidas
+                if (!item.Data || typeof item.Data !== 'string' || item.Data.split('/').length < 2) return;
 
-        const dateParts = item.Data.split('/');
-        const diaNum = parseInt(dateParts[0], 10);
-        const mesNum = parseInt(dateParts[1], 10);
+                const dateParts = item.Data.split('/');
+                const diaNum = parseInt(dateParts[0], 10);
+                const mesNum = parseInt(dateParts[1], 10);
 
-        // Validação básica do formato da data
-        if (isNaN(diaNum) || isNaN(mesNum) || mesNum < 1 || mesNum > 12 || diaNum < 1 || diaNum > 31) {
-            return;
-        }
+                // Validação básica do formato da data
+                if (isNaN(diaNum) || isNaN(mesNum) || mesNum < 1 || mesNum > 12 || diaNum < 1 || diaNum > 31) {
+                    return;
+                }
                 
                 if (mesNum > mesMax || (mesNum === mesMax && diaNum > diaMax)) {
                     mesMax = mesNum;
@@ -629,68 +656,39 @@
                 }
             });
             
-            // Se não encontramos dados, usar o mês atual do sistema
-            //if (mesMax === 0) {
-            //    const dataAtual = new Date();
-            //    mesMax = dataAtual.getMonth() + 1;
-            //    diaMax = dataAtual.getDate();
-            //}
             // Se não encontramos dados válidos, usar o mês atual do sistema
-                if (mesMax === 0) {
-                    const dataAtual = new Date();
-                    mesMax = dataAtual.getMonth() + 1;
-                    diaMax = dataAtual.getDate();
-    }
+            if (mesMax === 0) {
+                const dataAtual = new Date();
+                mesMax = dataAtual.getMonth() + 1;
+                diaMax = dataAtual.getDate();
+            }
 
-    const filterByDate = (item, anoComparacao) => {
-        const anoItem = parseInt(item.Ano);
-        if (anoItem !== anoComparacao) return false;
-
-        // IGNORAR REGISTROS SEM DATA VÁLIDA
-        if (!item.Data || item.Data.split('/').length < 2) return false;
-        
-        const dateParts = item.Data.split('/');
-        const diaItem = parseInt(dateParts[0], 10);
-        const mesItem = parseInt(dateParts[1], 10);
-        
-        if (isNaN(diaItem) || isNaN(mesItem) || mesItem < 1 || mesItem > 12 || diaItem < 1 || diaItem > 31) {
-            return false;
-        }
-        
-        // Comparar primeiro por mês, depois por dia
-        if (mesItem < mesMax) return true;
-        if (mesItem > mesMax) return false;
-        return diaItem <= diaMax;
-    };
-            
-            // Calcular totais para todos os bairros do ano atual até o período atual
-            //const totalAnoAtual = dados.filter(item =>
-            const totalAnoAtual = dados.filter(item => filterByDate(item, anoAtual)).length;{
+            const filterByDate = (item, anoComparacao) => {
                 const anoItem = parseInt(item.Ano);
-                const [diaItem, mesItem] = item.Data.split('/').map(Number);
+                if (anoItem !== anoComparacao) return false;
+
+                // IGNORAR REGISTROS SEM DATA VÁLIDA
+                if (!item.Data || typeof item.Data !== 'string' || item.Data.split('/').length < 2) return false;
                 
-                if (anoItem !== anoAtual) return false;
+                const dateParts = item.Data.split('/');
+                const diaItem = parseInt(dateParts[0], 10);
+                const mesItem = parseInt(dateParts[1], 10);
+                
+                if (isNaN(diaItem) || isNaN(mesItem) || mesItem < 1 || mesItem > 12 || diaItem < 1 || diaItem > 31) {
+                    return false;
+                }
                 
                 // Comparar primeiro por mês, depois por dia
                 if (mesItem < mesMax) return true;
                 if (mesItem > mesMax) return false;
                 return diaItem <= diaMax;
-            }).length;
+            };
+
+            // Calcular totais para todos os bairros do ano atual até o período atual
+            const totalAnoAtual = dados.filter(item => filterByDate(item, anoAtual)).length;
             
             // Calcular totais para todos os bairros do ano anterior até o mesmo período
-            //const totalAnoAnterior = dados.filter(item =>
             const totalAnoAnterior = dados.filter(item => filterByDate(item, anoAnterior)).length;
-             {
-                const anoItem = parseInt(item.Ano);
-                const [diaItem, mesItem] = item.Data.split('/').map(Number);
-                
-                if (anoItem !== anoAnterior) return false;
-                
-                // Comparar primeiro por mês, depois por dia
-                if (mesItem < mesMax) return true;
-                if (mesItem > mesMax) return false;
-                return diaItem <= diaMax;
-            }).length;
             
             // Calcular variação
             let variacao = 0;
@@ -706,8 +704,10 @@
                 } else {
                     variacaoHtml = `<span class="comparison-change">0%</span>`;
                 }
+            } else if (totalAnoAtual > 0) {
+                variacaoHtml = `<span class="comparison-change">Novo</span>`; // Caso não haja dados anteriores
             } else {
-                variacaoHtml = `<span class="comparison-change">Sem dados anteriores</span>`;
+                variacaoHtml = `<span class="comparison-change">Sem dados</span>`;
             }
             
             // Formatar o período para exibição
@@ -741,17 +741,25 @@
             
             // Calcular métricas
             const totalAnual = dadosBairro.length;
+
+            // Função auxiliar para filtro de semestre robusto
+            const filterBySemestre = (item, semestre) => {
+                if (!item.Data || typeof item.Data !== 'string' || item.Data.split('/').length < 2) return false;
+                const mes = parseInt(item.Data.split('/')[1], 10);
+                if (isNaN(mes)) return false;
+
+                if (semestre === 1) {
+                    return mes >= 1 && mes <= 6;
+                }
+                if (semestre === 2) {
+                    return mes >= 7 && mes <= 12;
+                }
+                return false;
+            };
             
             // Calcular semestres
-            const dadosSemestre1 = dadosBairro.filter(item => {
-                const mes = parseInt(item.Data.split('/')[1]);
-                return mes >= 1 && mes <= 6;
-            });
-            
-            const dadosSemestre2 = dadosBairro.filter(item => {
-                const mes = parseInt(item.Data.split('/')[1]);
-                return mes >= 7 && mes <= 12;
-            });
+            const dadosSemestre1 = dadosBairro.filter(item => filterBySemestre(item, 1));
+            const dadosSemestre2 = dadosBairro.filter(item => filterBySemestre(item, 2));
             
             // Atualizar métricas
             document.getElementById('totalAnual').textContent = totalAnual;
